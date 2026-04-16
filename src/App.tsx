@@ -13,7 +13,10 @@ function App() {
   const [tempId, setTempId] = useState('');
   const [tempName, setTempName] = useState('');
 
-  const whatsappUrl = userId ? `https://wa.me/${userId.split('@')[0]}?text=Olá ${userName || ''}! Estou pronto para minha prática de hoje.` : '';
+  // CONFIGURAÇÃO DO BOT (Aqui deve ir o número do seu N8n/WhatsApp Business)
+  const BOT_NUMBER = "5581999801544"; // ATENÇÃO: Ajuste para o número do seu BOT
+  
+  const whatsappUrl = `https://wa.me/${BOT_NUMBER}?text=Olá Mentora Louise, aqui é ${userName || 'alguém precisando de luz'}. Estou pronto para minha libertação de hoje. Minha jornada atual é: ${journey?.theme || 'Geral'}.`;
 
   useEffect(() => {
     if (!userId) {
@@ -47,7 +50,18 @@ function App() {
   }, [userId]);
 
   const handleIdentify = (id: string, name: string) => {
-    const formattedId = id.includes('@') ? id : `${id.replace(/\D/g, '')}@s.whatsapp.net`;
+    // Normaliza o número: remove tudo que não é dígito
+    let cleanId = id.replace(/\D/g, '');
+    
+    // Se digitou 11 dígitos (DDD + número), assume Brasil e coloca 55
+    if (cleanId.length === 11) {
+      cleanId = '55' + cleanId;
+    }
+    // Se digitou 9 dígitos (sem DDD), pode ser bugado, mas vamos tentar manter
+    // O ideal é que o usuário digite DDD + Número.
+    
+    const formattedId = `${cleanId}@s.whatsapp.net`;
+    
     localStorage.setItem('libertacao_user_id', formattedId);
     localStorage.setItem('libertacao_user_name', name);
     setUserId(formattedId);
@@ -77,10 +91,11 @@ function App() {
       .single();
 
     if (data) {
+      // Log do diagnóstico que a Mentora vai ler
       await supabase.from('emotions_log').insert({
         session_id: userId,
-        user_message: `Diagnóstico Inicial (${userName}): Área: ${diagnostic.area}, Padrão: ${diagnostic.pattern}. Nota: ${diagnostic.notes}`,
-        emotion_tag: 'initial_diagnostic'
+        user_message: `SOLICITAÇÃO DE AJUDA (${userName}): "Sinto que minha dor está em ${theme}. O padrão que me trava é ${diagnostic.pattern}. Minha queixa: ${diagnostic.notes}"`,
+        emotion_tag: 'diagnostic'
       });
       setJourney(data);
     }
@@ -88,7 +103,7 @@ function App() {
   };
 
   const resetJourney = async () => {
-    if (!userId || !confirm("Deseja realmente reiniciar sua jornada? Os dados atuais serão arquivados.")) return;
+    if (!userId || !confirm("Deseja realmente iniciar um novo ciclo? Sua jornada atual será arquivada.")) return;
     setLoading(true);
     await supabase
       .from('healing_journeys')
@@ -111,96 +126,60 @@ function App() {
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center bg-white">
       <div className="text-center">
-        <Sparkles className="text-green-800 animate-spin mb-4" size={40} />
-        <p className="text-xs font-bold tracking-widest text-slate-300 uppercase">Sintonizando...</p>
+        <Wind className="text-green-800 animate-pulse mb-4" size={40} />
+        <p className="text-xs font-bold tracking-widest text-slate-300 uppercase">Acolhendo sua presença...</p>
       </div>
     </div>
   );
 
-  // Phase 1: Landing / Welcome
-  if (!userId && !showIdent) {
+  if (!userId) {
     return (
-      <div className="min-h-screen bg-[#fafaf8] flex flex-col justify-center items-center p-8 max-w-lg mx-auto text-center">
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="space-y-8"
-        >
-          <div className="inline-flex p-4 bg-white rounded-full shadow-sm mb-6">
-            <Wind className="text-green-800" size={32} />
-          </div>
-          <h1 className="text-5xl font-serif text-slate-900 leading-[1.1]">
-            Transforme sua <span className="text-gradient">Vida</span> em 21 Dias
-          </h1>
-          <p className="text-slate-500 text-lg leading-relaxed">
-            Um guia interativo baseado na filosofia de <span className="font-bold text-slate-700">Louise Hay</span> para superar traumas e libertar seu potencial.
-          </p>
-          <div className="pt-8">
-            <button 
-              onClick={() => setShowIdent(true)}
-              className="btn-primary w-full max-w-xs"
-            >
-              Começar minha jornada
-            </button>
-          </div>
-          <div className="flex justify-center gap-8 mt-12 opacity-40 grayscale">
-            <div className="flex flex-col items-center">
-              <span className="text-xs font-bold uppercase tracking-widest mb-1">React</span>
-            </div>
-            <div className="flex flex-col items-center">
-              <span className="text-xs font-bold uppercase tracking-widest mb-1">Supabase</span>
-            </div>
-            <div className="flex flex-col items-center">
-              <span className="text-xs font-bold uppercase tracking-widest mb-1">AI Mentor</span>
-            </div>
-          </div>
-        </motion.div>
-      </div>
-    );
-  }
-
-  // Phase 2: Identification
-  if (!userId && showIdent) {
-    return (
-      <div className="min-h-screen bg-white p-8 flex flex-col justify-center items-center max-w-lg mx-auto">
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="w-full space-y-12">
-          <div className="text-center">
-            <h2 className="text-3xl font-serif text-slate-800 mb-2">Quem está aqui?</h2>
-            <p className="text-slate-400">Identifique-se para salvar seu progresso no banco de dados.</p>
+      <div className="min-h-screen bg-[#fafaf8] p-8 flex flex-col justify-center items-center max-w-lg mx-auto">
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="w-full space-y-12 text-center">
+          <div className="inline-flex p-5 bg-white rounded-full shadow-sm">
+            <Heart className="text-rose-500" size={32} />
           </div>
           
-          <div className="space-y-6">
+          <div className="space-y-4">
+            <h1 className="text-4xl font-serif text-slate-900">Seu Espaço de <span className="text-gradient">Libertação</span></h1>
+            <p className="text-slate-500 leading-relaxed px-6 italic">
+              "A jornada de mil milhas começa com um único passo de amor próprio."
+            </p>
+          </div>
+
+          <div className="bg-white p-10 rounded-[40px] shadow-xl shadow-green-900/5 space-y-8 text-left border border-slate-100">
             <div className="space-y-2">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-2">Como quer ser chamado?</label>
+              <label className="section-label">Como podemos te chamar?</label>
               <input 
-                type="text"
-                placeholder="Seu Nome"
-                className="input-zen"
-                value={tempName}
-                onChange={(e) => setTempName(e.target.value)}
+                type="text" 
+                placeholder="Seu nome" 
+                className="input-zen" 
+                value={tempName} 
+                onChange={(e) => setTempName(e.target.value)} 
               />
             </div>
             <div className="space-y-2">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-2">Seu WhatsApp</label>
+              <label className="section-label">Seu WhatsApp (com DDD)</label>
               <input 
-                type="text"
-                placeholder="558199999999"
-                className="input-zen"
-                value={tempId}
-                onChange={(e) => setTempId(e.target.value)}
+                type="text" 
+                placeholder="Ex: 81 99999-9999" 
+                className="input-zen" 
+                value={tempId} 
+                onChange={(e) => setTempId(e.target.value)} 
               />
             </div>
             <button 
-              onClick={() => handleIdentify(tempId, tempName)}
-              disabled={!tempId || !tempName}
-              className="btn-primary w-full mt-4"
+              onClick={() => handleIdentify(tempId, tempName)} 
+              disabled={!tempId || !tempName} 
+              className="btn-primary w-full py-6 text-base"
             >
-              Confirmar e Entrar
-            </button>
-            <button onClick={() => setShowIdent(false)} className="w-full text-xs text-slate-400 font-bold uppercase py-4 border-none bg-none cursor-pointer">
-              Voltar
+              Começar minha cura agora
             </button>
           </div>
+          
+          <p className="text-[10px] text-slate-300 font-bold uppercase tracking-[0.2em]">
+            Baseado na filosofia de Louise Hay
+          </p>
         </motion.div>
       </div>
     );
