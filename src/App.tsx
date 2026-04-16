@@ -61,21 +61,35 @@ function App() {
     setUserName(name);
   };
 
+  const SYMPTOMS_DB: any = {
+    'headache': { pattern: 'Invalidação do Eu. Medo.', affirmation: 'Eu me amo e me aprovo. Eu me vejo com olhos de amor.' },
+    'stomach': { pattern: 'Dificuldade em digerir novas ideias. Medo do novo.', affirmation: 'Eu digiro a vida com facilidade. Tudo o que acontece é para o meu bem.' },
+    'back_pain': { pattern: 'Falta de apoio emocional. Sentindo-se sem suporte.', affirmation: 'A vida me apoia. Eu confio no processo da vida.' },
+    'cancer': { pattern: 'Ressentimento profundo. Mágoa antiga comendo o corpo.', affirmation: 'Eu libero o passado com amor. Eu escolho preencher meu mundo com alegria.' },
+    'heart': { pattern: 'Falta de alegria. Endurecimento do coração.', affirmation: 'Meu coração bate no ritmo do amor. Eu sou alegria.' },
+    'knees': { pattern: 'Orgulho e teimosia. Incapacidade de se curvar.', affirmation: 'Eu sou flexível e fluido. Eu me curvo com amor.' }
+  };
+
+  const [symptom, setSymptom] = useState<string | null>(null);
+
   const startJourney = async (diagnostic: any) => {
     if (!userId) return;
     setLoading(true);
-    const theme = diagnostic.area === 'health' ? 'Cura do Corpo' : 
-                  diagnostic.area === 'money' ? 'Prosperidade Infinita' : 
-                  diagnostic.area === 'relationships' ? 'Harmonia e Amor' : 'Propósito de Vida';
     
-    const affirmation = `Eu me amo e me aceito exatamente como sou agora.`;
+    const theme = diagnostic.area === 'health' ? 'Cura Somática' : 
+                  diagnostic.area === 'money' ? 'Prosperidade Infinita' : 
+                  diagnostic.area === 'relationships' ? 'Harmonia e Amor' : 'Autoestima';
+    
+    // Se escolheu sintoma, a afirmação vem da DB de Louise Hay
+    const customAffirmation = diagnostic.symptom ? SYMPTOMS_DB[diagnostic.symptom]?.affirmation : `Eu me amo e me aceito.`;
+    const pattern = diagnostic.symptom ? SYMPTOMS_DB[diagnostic.symptom]?.pattern : diagnostic.pattern;
 
     const { data } = await supabase
       .from('healing_journeys')
       .insert({
         session_id: userId,
         theme: theme,
-        affirmation: affirmation,
+        affirmation: customAffirmation,
         current_day: 1,
         max_days: 21,
         status: 'active'
@@ -84,6 +98,11 @@ function App() {
       .single();
 
     if (data) {
+      await supabase.from('emotions_log').insert({
+        session_id: userId,
+        user_message: `FOCO DE CURA: ${theme}. Padrão Detectado: ${pattern}. Queixa: ${diagnostic.notes}`,
+        emotion_tag: 'somatic_diagnostic'
+      });
       setJourney(data);
     }
     setLoading(false);
@@ -231,38 +250,73 @@ function App() {
 
 function Onboarding({ onComplete, profileName, onBack }: { onComplete: (data: any) => void, profileName: string, onBack: () => void }) {
   const [step, setStep] = useState(1);
-  const [diagnostic, setDiagnostic] = useState({ area: '', pattern: '', notes: '' });
+  const [diagnostic, setDiagnostic] = useState({ area: '', pattern: '', symptom: '', notes: '' });
 
-  const steps = [
-    { title: "Caminho", subtitle: "Qual área requer cura hoje?", options: [{ id: 'health', label: 'Saúde', icon: Heart }, { id: 'money', label: 'Prosperidade', icon: Sparkles }, { id: 'relationships', label: 'Relações', icon: MessageCircle }, { id: 'self', label: 'Autoestima', icon: Wind }], field: 'area' },
-    { title: "Raiz", subtitle: "O que te trava?", options: [{ id: 'criticismo', label: 'Criticismo', icon: Wind }, { id: 'culpa', label: 'Culpa', icon: Heart }, { id: 'ressentimento', label: 'Ressentimento', icon: MessageCircle }, { id: 'medo', label: 'Medo', icon: Sparkles }], field: 'pattern' },
-    { title: "Intenção", subtitle: "Sua queixa principal?", field: 'notes' }
+  const SYMPTOMS_LIST = [
+    { id: 'headache', label: 'Dor de Cabeça' },
+    { id: 'stomach', label: 'Estômago / Digestão' },
+    { id: 'back_pain', label: 'Coluna / Costas' },
+    { id: 'cancer', label: 'Processo Degenerativo' },
+    { id: 'heart', label: 'Problemas Cardíacos' },
+    { id: 'knees', label: 'Articulações / Joelhos' }
   ];
 
-  const currentStep = steps[step - 1];
-  const handleNext = () => step < 3 ? setStep(step + 1) : onComplete(diagnostic);
+  const steps = [
+    { title: "Área de Cura", subtitle: "Onde sua alma pede ajuda?", options: [{ id: 'health', label: 'Física (Corpo)', icon: Heart }, { id: 'money', label: 'Prosperidade', icon: Sparkles }, { id: 'relationships', label: 'Relacional', icon: MessageCircle }, { id: 'self', label: 'Autoestima', icon: Wind }], field: 'area' },
+    { 
+      title: "O Sintoma", 
+      subtitle: "Qual parte do seu corpo está manifestando dor?", 
+      options: SYMPTOMS_LIST, 
+      field: 'symptom',
+      condition: (d: any) => d.area === 'health' 
+    },
+    { 
+      title: "Padrão Mental", 
+      subtitle: "Que sentimento mais te descreve hoje?", 
+      options: [{ id: 'criticismo', label: 'Criticismo', icon: Wind }, { id: 'culpa', label: 'Culpa', icon: Heart }, { id: 'ressentimento', label: 'Ressentimento', icon: MessageCircle }, { id: 'medo', label: 'Medo', icon: Sparkles }], 
+      field: 'pattern',
+      condition: (d: any) => d.area !== 'health'
+    },
+    { title: "Detalhamento", subtitle: "Conte-me o que você quer libertar...", field: 'notes' }
+  ];
+
+  const filteredSteps = steps.filter(s => !s.condition || s.condition(diagnostic));
+  const currentStep = filteredSteps[step - 1];
+
+  const handleNext = () => step < filteredSteps.length ? setStep(step + 1) : onComplete(diagnostic);
 
   return (
     <div className="min-h-screen p-8 flex flex-col justify-center max-w-lg mx-auto">
-      <div className="mb-12 flex justify-between items-center">
-        <div className="flex gap-2 font-bold text-[10px] text-slate-400">PASSO {step} DE 3</div>
+      <div className="mb-8 flex justify-between items-center">
+        <div className="flex gap-2 font-bold text-[10px] text-slate-400 uppercase tracking-widest">Fase {step} de {filteredSteps.length}</div>
         <button onClick={onBack} className="text-[10px] font-bold uppercase text-slate-300">Sair</button>
       </div>
-      <motion.div key={step} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="glass-panel p-10">
+      <motion.div key={step} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="glass-panel p-10 border-t-4 border-green-800">
         <h2 className="text-4xl font-serif text-slate-900 mb-2">{currentStep.title}</h2>
         <p className="text-slate-500 mb-8 italic">"{currentStep.subtitle}"</p>
+        
         {currentStep.options ? (
           <div className="grid gap-3">
             {currentStep.options.map((opt: any) => (
-              <button key={opt.id} onClick={() => setDiagnostic({ ...diagnostic, [currentStep.field]: opt.id })} className={`option-btn flex items-center gap-4 ${diagnostic[currentStep.field as keyof typeof diagnostic] === opt.id ? 'selected' : 'opacity-60'}`}>
-                <opt.icon size={20} /> {opt.label}
+              <button 
+                key={opt.id} 
+                onClick={() => setDiagnostic({ ...diagnostic, [currentStep.field]: opt.id })} 
+                className={`option-btn flex items-center justify-between p-6 ${diagnostic[currentStep.field as keyof typeof diagnostic] === opt.id ? 'selected !bg-green-800 !text-white' : 'bg-white/50 text-slate-600'}`}
+              >
+                <div className="flex items-center gap-4">
+                  {opt.icon && <opt.icon size={18} />}
+                  <span className="font-medium">{opt.label}</span>
+                </div>
+                {diagnostic[currentStep.field as keyof typeof diagnostic] === opt.id && <CheckCircle2 size={18} />}
               </button>
             ))}
           </div>
         ) : (
-          <textarea className="input-zen h-40 resize-none bg-white/50" value={diagnostic.notes} onChange={(e) => setDiagnostic({ ...diagnostic, notes: e.target.value })} />
+          <textarea className="input-zen h-44 resize-none bg-white/50 p-6" value={diagnostic.notes} onChange={(e) => setDiagnostic({ ...diagnostic, notes: e.target.value })} placeholder="Abra seu coração..." />
         )}
-        <button onClick={handleNext} className="btn-primary w-full mt-10">Próximo</button>
+        <button onClick={handleNext} disabled={(currentStep.options && !diagnostic[currentStep.field as keyof typeof diagnostic])} className="btn-primary w-full mt-10">
+          Confirmar Intentionalidade
+        </button>
       </motion.div>
     </div>
   );
