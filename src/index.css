@@ -1,0 +1,21 @@
+:root {
+  --prime-bg: #f8f9f5;
+  --zen-green: #6b8e23;
+  --soft-cream: #fefae0;
+  --earth-terracotta: #bc6c25;
+  --text-dark: #283618;
+  --shadow: 0 10px 40px rgba(0,0,0,0.05);
+}
+
+body {
+  background: radial-gradient(circle at top right, #fdfbfb, #ebedee);
+  min-height: 100vh;
+  font-family: 'Inter', sans-serif;
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: var(--shadow);
+}
