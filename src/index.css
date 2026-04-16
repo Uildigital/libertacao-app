@@ -1,21 +1,20 @@
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Inter:wght@300;400;600&display=swap');
 
 :root {
-  --zen-sage: #4a6741;
-  --zen-sage-light: #f1f5f0;
-  --zen-cream: #fdfdfb;
-  --zen-gold: #b38b4d;
-  --zen-slate: #334155;
-  --glass-bg: rgba(255, 255, 255, 0.4);
-  --glass-border: rgba(255, 255, 255, 0.6);
+  --zen-sage: #2d4f1e;
+  --zen-sage-light: #f4f7f2;
+  --zen-cream: #fafaf8;
+  --zen-gold: #9c7b41;
+  --zen-slate: #1e293b;
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.4);
 }
 
 body {
   margin: 0;
   padding: 0;
   color: var(--zen-slate);
-  background: radial-gradient(circle at top left, #fdfdfb, #f1f5f0, #e9edc9);
-  background-attachment: fixed;
+  background: white;
   font-family: 'Inter', sans-serif;
   min-height: 100vh;
 }
@@ -110,4 +109,39 @@ body {
 .progress-dot.active {
   width: 24px;
   background: var(--zen-sage);
+}
+
+/* SaaS Utility Classes */
+.btn-primary {
+  background: var(--zen-sage);
+  color: white;
+  padding: 1.25rem;
+  border-radius: 20px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 0 10px 20px rgba(45, 79, 30, 0.2);
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 15px 30px rgba(45, 79, 30, 0.3);
+}
+
+.text-gradient {
+  background: linear-gradient(135deg, var(--zen-sage) 0%, var(--zen-gold) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.section-label {
+  font-[10px];
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 2.5px;
+  color: #cbd5e1;
 }
