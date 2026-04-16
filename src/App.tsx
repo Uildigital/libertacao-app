@@ -199,125 +199,138 @@ function App() {
 
   // Phase 4: Active Dashboard
   return (
-    <div className="min-h-screen bg-[#fafaf8] p-6 max-w-lg mx-auto pb-20 relative overflow-hidden">
-      <header className="relative z-10 flex justify-between items-center mt-8 mb-12">
-        <div>
-          <p className="section-label mb-1">Bem-vindo(a),</p>
-          <h2 className="text-2xl font-serif text-slate-800">{userName}</h2>
-        </div>
-        <button onClick={logout} className="p-3 bg-white rounded-2xl shadow-sm text-slate-400 hover:text-rose-500 transition-colors">
+    <div className="min-h-screen p-6 max-w-lg mx-auto pb-24 relative overflow-hidden">
+      {/* Ritual Header */}
+      <header className="relative z-10 flex justify-between items-end mt-12 mb-10 pt-10">
+        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
+          <p className="section-label mb-2">Portal de Libertação</p>
+          <h1 className="text-4xl font-serif text-slate-800">Caminho de {userName?.split(' ')[0]}</h1>
+        </motion.div>
+        <button onClick={logout} className="p-4 bg-white/40 backdrop-blur-xl rounded-full text-slate-400 hover:text-rose-600 transition-all border border-white/20">
           <Wind size={20} />
         </button>
       </header>
 
-      {/* Main Journey Progress */}
+      {/* The Journey Map (Complex Visualization) */}
       <motion.div 
-        initial={{ opacity: 0, scale: 0.98 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="glass-panel p-10 mb-8 relative z-10"
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="glass-panel p-8 mb-8 relative z-10 overflow-hidden"
       >
-        <div className="flex flex-col items-center text-center">
-          <div className="relative mb-6">
-            <svg className="w-40 h-40 transform -rotate-90">
-              <circle cx="80" cy="80" r="74" stroke="#f1f5f9" strokeWidth="6" fill="transparent" />
-              <motion.circle
-                cx="80"
-                cy="80"
-                r="74"
-                stroke="var(--zen-sage)"
-                strokeWidth="6"
-                fill="transparent"
-                strokeDasharray="465"
-                initial={{ strokeDashoffset: 465 }}
-                animate={{ strokeDashoffset: 465 - (465 * (journey?.current_day || 0)) / 21 }}
-                transition={{ duration: 2, ease: "circOut" }}
+        <div className="flex justify-between items-center mb-10">
+          <div className="day-badge">
+            <span className="text-3xl font-serif text-slate-900">{journey?.current_day || 0}</span>
+            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">de 21 dias</span>
+          </div>
+          <div className="flex-1 ml-8 space-y-2">
+            <div className="flex justify-between items-end">
+              <span className="text-[10px] font-bold text-green-800 uppercase tracking-widest">Sua Evolução</span>
+              <span className="text-[10px] font-bold text-slate-400">{( (journey?.current_day || 0) / 21 * 100).toFixed(0)}%</span>
+            </div>
+            <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+              <motion.div 
+                initial={{ width: 0 }}
+                animate={{ width: `${( (journey?.current_day || 0) / 21 * 100)}%` }}
+                className="h-full bg-gradient-to-r from-green-800 to-green-500" 
               />
-            </svg>
-            <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <span className="text-5xl font-serif text-slate-900">{journey?.current_day || 0}</span>
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Dia</span>
             </div>
           </div>
-          <h3 className="text-xl font-serif text-slate-800 mb-1">{journey?.theme}</h3>
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Sua Jornada de 21 Dias</p>
+        </div>
+        <div className="flex items-center gap-3 p-4 bg-green-50/30 rounded-2xl border border-green-100/50">
+          <Sparkles className="text-green-800" size={16} />
+          <p className="text-xs font-medium text-green-900">Tema Ativo: <span className="font-bold underline decoration-green-800/30">{journey?.theme}</span></p>
         </div>
       </motion.div>
 
-      {/* Power Card */}
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-        className="affirmation-card p-12 rounded-[48px] relative overflow-hidden mb-12"
+      {/* The Insight Engine Card (Deep Assistance) */}
+      <motion.section 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.4 }}
+        className="insight-card mb-8 relative z-10"
       >
-        <Sparkles className="absolute -right-8 -top-8 text-white/5 opacity-20" size={160} />
-        <p className="text-xs font-bold uppercase tracking-widest text-amber-300/60 mb-6">Afirmação Diária</p>
-        <p className="text-3xl font-serif italic leading-tight mb-10">
-          "{journey?.affirmation}"
+        <div className="flex items-center gap-2 mb-4">
+          <Heart size={14} className="text-rose-500 fill-rose-500" />
+          <span className="section-label !text-slate-800 !opacity-100">Visão da Mentora</span>
+        </div>
+        <p className="text-slate-600 leading-relaxed mb-6 font-medium">
+          {userName}, seu coração está vibrando na frequência do perdão hoje. 
+          Note que sua dificuldade com <span className="text-green-900 font-bold">{journey?.theme.toLowerCase()}</span> é apenas um sinal de que você está pronto para soltar o passado.
         </p>
-        <button 
-          onClick={() => window.open(whatsappUrl, '_blank')}
-          className="w-full py-5 rounded-2xl bg-white text-green-950 font-bold hover:bg-green-50 transition-all shadow-xl active:scale-95 flex items-center justify-center gap-3 border-none cursor-pointer"
-        >
-          Praticar no WhatsApp <ArrowRight size={18} />
-        </button>
+        <div className="p-4 bg-white/60 rounded-xl italic text-xs text-slate-500 border border-white/40">
+          "Para mudar sua vida, você deve mudar seus pensamentos hoje." — Louise
+        </div>
+      </motion.section>
+
+      {/* Affirmation Totem */}
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ delay: 0.2 }}
+        className="relative mb-12 group"
+      >
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent z-10 rounded-[48px]" />
+        <img 
+          src="/zen_healing_presence_1776372032791.png" 
+          className="w-full h-80 object-cover rounded-[48px] shadow-2xl" 
+          alt="Presence"
+        />
+        <div className="absolute inset-0 z-20 p-10 flex flex-col justify-end">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-white/60 mb-4 flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" /> Mantra de Poder do Dia {journey?.current_day}
+          </p>
+          <p className="power-affirmation mb-8">
+            "{journey?.affirmation}"
+          </p>
+          <button 
+            onClick={() => window.open(whatsappUrl, '_blank')}
+            className="w-full py-5 rounded-2xl bg-white text-slate-900 font-bold hover:scale-[1.02] transition-all shadow-2xl active:scale-95 flex items-center justify-center gap-3 border-none cursor-pointer group-hover:bg-green-50"
+          >
+            Praticar no WhatsApp <ArrowRight size={18} />
+          </button>
+        </div>
       </motion.div>
 
-      {/* Insights Section */}
-      <section className="relative z-10 mb-12">
-        <div className="flex items-center gap-2 mb-6">
-          <Wind className="text-green-800" size={18} />
-          <h3 className="section-label">A Mentora Louise Diz</h3>
-        </div>
-        <div className="glass-panel p-8 border-l-4 border-l-green-800">
-          <p className="text-slate-600 italic leading-relaxed">
-            {diagnosticInsight(journey?.theme)}
-          </p>
-        </div>
-      </section>
-
-      {/* Logs Section */}
-      <section className="relative z-10 pb-12">
-        <div className="flex justify-between items-center mb-6">
-          <div className="flex items-center gap-2">
-            <Heart className="text-rose-400" size={18} />
-            <h3 className="section-label">Histórico de Cura</h3>
-          </div>
-          <button 
-            onClick={resetJourney}
-            className="text-[10px] font-bold uppercase text-slate-300 hover:text-rose-500 transition-colors border-none bg-none cursor-pointer"
-          >
-            Recomeçar Jornada
+      {/* Journaling Timeline (The Healing Moments) */}
+      <section className="relative z-10 px-2 pb-12">
+        <div className="flex justify-between items-center mb-8">
+          <h3 className="section-label">Diário de Libertação</h3>
+          <button onClick={resetJourney} className="text-[9px] font-bold uppercase text-slate-400 hover:text-rose-600 border-none bg-none cursor-pointer">
+            Arquivar Jornada
           </button>
         </div>
 
-        <div className="space-y-6">
+        <div className="space-y-12 before:absolute before:left-10 before:top-24 before:bottom-20 before:w-px before:bg-slate-200/50">
           {logs.length > 0 ? logs.map((log, i) => (
             <motion.div 
               key={i}
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.3 + i * 0.1 }}
-              className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100"
+              transition={{ delay: 0.6 + i * 0.1 }}
+              className="relative pl-14"
             >
-              <div className="flex justify-between mb-4">
-                <span className="text-[9px] font-bold text-slate-300 uppercase">
-                  {new Date(log.created_at).toLocaleDateString()} • {new Date(log.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </span>
-                <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
-              </div>
+              <div className="absolute left-8 top-0 w-4 h-4 rounded-full bg-white border-4 border-green-800 shadow-sm z-10" />
               <div className="space-y-4">
-                <p className="text-slate-500 text-sm italic">"{log.user_message.substring(0, 100)}..."</p>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                  {new Date(log.created_at).toLocaleDateString()} às {new Date(log.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </p>
+                <div className="chat-bubble-user text-sm text-slate-600 italic">
+                  "{log.user_message}"
+                </div>
                 {log.ai_response && (
-                  <div className="bg-green-50/50 p-4 rounded-2xl border border-green-100">
-                    <p className="text-[9px] font-bold uppercase text-green-700 mb-1">Mentora</p>
-                    <p className="text-green-900 text-sm leading-relaxed">{log.ai_response}</p>
-                  </div>
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="chat-bubble-mentor text-sm leading-relaxed"
+                  >
+                    <p className="font-bold text-[10px] uppercase mb-2">Mentora Louise</p>
+                    {log.ai_response}
+                  </motion.div>
                 )}
               </div>
             </motion.div>
           )) : (
-            <div className="text-center py-20 opacity-20 italic">Aguardando sua primeira prática...</div>
+            <div className="text-center py-20 opacity-20 italic font-serif text-lg">Sua história começa aqui...</div>
           )}
         </div>
       </section>
@@ -325,7 +338,6 @@ function App() {
   );
 }
 
-// Subcomponents helper
 function Onboarding({ onComplete, profileName, onBack }: { onComplete: (data: any) => void, profileName: string, onBack: () => void }) {
   const [step, setStep] = useState(1);
   const [diagnostic, setDiagnostic] = useState({ area: '', pattern: '', notes: '' });
@@ -367,7 +379,7 @@ function Onboarding({ onComplete, profileName, onBack }: { onComplete: (data: an
   };
 
   return (
-    <div className="min-h-screen bg-white p-8 flex flex-col justify-center max-w-lg mx-auto overflow-hidden">
+    <div className="min-h-screen bg-white/80 backdrop-blur-3xl p-8 flex flex-col justify-center max-w-lg mx-auto overflow-hidden">
       <div className="mb-12 flex justify-between items-center">
         <div className="flex gap-2">
           {[1, 2, 3].map(i => (
@@ -403,7 +415,7 @@ function Onboarding({ onComplete, profileName, onBack }: { onComplete: (data: an
             </div>
           ) : (
             <textarea
-              className="input-zen h-40 resize-none"
+              className="input-zen h-40 resize-none bg-white/50"
               placeholder="Escreva com o coração..."
               value={diagnostic.notes}
               onChange={(e) => setDiagnostic({ ...diagnostic, notes: e.target.value })}
