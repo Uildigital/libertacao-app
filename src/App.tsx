@@ -26,8 +26,11 @@ function App() {
         .eq('status', 'active')
         .single();
       
-      if (journeyData) setJourney(journeyData);
-      else setJourney(null);
+      if (journeyData) {
+        setJourney(journeyData);
+      } else {
+        setJourney(null);
+      }
 
       const { data: logsData } = await supabase
         .from('emotions_log')
@@ -42,11 +45,48 @@ function App() {
     fetchData();
   }, [activeProfile]);
 
+  const startJourney = async (diagnostic: any) => {
+    setLoading(true);
+    const theme = diagnostic.area === 'health' ? 'Cura do Corpo' : 
+                  diagnostic.area === 'money' ? 'Prosperidade Infinita' : 
+                  diagnostic.area === 'relationships' ? 'Harmonia e Amor' : 'Propósito de Vida';
+    
+    const affirmation = `Eu libero o padrão de ${diagnostic.pattern} e abro meu coração para a ${theme.toLowerCase()}.`;
+
+    const { data, error } = await supabase
+      .from('healing_journeys')
+      .insert({
+        session_id: activeProfile.id,
+        theme: theme,
+        affirmation: affirmation,
+        current_day: 1,
+        max_days: 21,
+        status: 'active'
+      })
+      .select()
+      .single();
+
+    if (data) {
+      // Log initial diagnostic
+      await supabase.from('emotions_log').insert({
+        session_id: activeProfile.id,
+        user_message: `Diagnóstico Inicial: Área: ${diagnostic.area}, Padrão: ${diagnostic.pattern}. Nota: ${diagnostic.notes}`,
+        emotion_tag: 'initial_diagnostic'
+      });
+      setJourney(data);
+    }
+    setLoading(false);
+  };
+
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center">
+    <div className="min-h-screen flex items-center justify-center bg-white">
       <Sparkles className="text-green-700 animate-pulse" size={48} />
     </div>
   );
+
+  if (!journey) {
+    return <Onboarding onComplete={startJourney} profileName={activeProfile.name} />;
+  }
 
   return (
     <div className="min-h-screen p-6 max-w-lg mx-auto pb-20 relative overflow-hidden">
@@ -183,7 +223,7 @@ function App() {
         </div>
         <div className="glass-panel p-8 border-l-4 border-l-green-600">
           <p className="text-slate-700 leading-relaxed italic">
-            "Sempre que diz 'não sei o que fazer', está fechando a porta para a sua própria sabedoria. Diga antes: 'Estou aberto a novas formas de ver esta situação'."
+            {diagnosticInsight(journey?.theme)}
           </p>
         </div>
       </motion.section>
@@ -224,6 +264,115 @@ function App() {
       </section>
     </div>
   );
+}
+
+function Onboarding({ onComplete, profileName }: { onComplete: (data: any) => void, profileName: string }) {
+  const [step, setStep] = useState(1);
+  const [diagnostic, setDiagnostic] = useState({
+    area: '',
+    pattern: '',
+    notes: ''
+  });
+
+  const steps = [
+    {
+      title: `Olá, ${profileName}.`,
+      subtitle: "Vamos começar sua jornada de 21 dias. Qual área da sua vida mais precisa de atenção e cura agora?",
+      options: [
+        { id: 'health', label: 'Saúde e Vitalidade', icon: Heart },
+        { id: 'money', label: 'Prosperidade e Carreira', icon: Sparkles },
+        { id: 'relationships', label: 'Amor e Relacionamentos', icon: MessageCircle },
+        { id: 'self', label: 'Autoestima e Paz Interior', icon: Wind }
+      ],
+      field: 'area'
+    },
+    {
+      title: "Identificando o Padrão",
+      subtitle: "Louise Hay ensina que 4 padrões causam a maioria dos nossos bloqueios. Qual você sente mais presente?",
+      options: [
+        { id: 'criticismo', label: 'Criticismo (Julgar a si ou aos outros)', icon: Wind },
+        { id: 'culpa', label: 'Culpa (Sentir-se errado ou insuficiente)', icon: Heart },
+        { id: 'ressentimento', label: 'Ressentimento (Mágoas do passado)', icon: MessageCircle },
+        { id: 'medo', label: 'Medo (Ansiedade com o futuro)', icon: Sparkles }
+      ],
+      field: 'pattern'
+    },
+    {
+      title: "Espaço de Desabafo",
+      subtitle: "Se você pudesse liberar uma única dor ou queixa hoje, o que seria? Escreva brevemente.",
+      field: 'notes'
+    }
+  ];
+
+  const currentStep = steps[step - 1];
+
+  const handleNext = () => {
+    if (step < steps.length) setStep(step + 1);
+    else onComplete(diagnostic);
+  };
+
+  return (
+    <div className="min-h-screen bg-white p-8 flex flex-col justify-center max-w-lg mx-auto overflow-hidden">
+      <div className="mb-12 flex gap-2">
+        {[1, 2, 3].map(i => (
+          <div key={i} className={`progress-dot ${step >= i ? 'active' : ''}`} />
+        ))}
+      </div>
+
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={step}
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -20 }}
+          className="step-container"
+        >
+          <h2 className="text-4xl font-serif text-slate-800 mb-2">{currentStep.title}</h2>
+          <p className="text-slate-500 mb-8 leading-relaxed">{currentStep.subtitle}</p>
+
+          {currentStep.options ? (
+            <div className="grid gap-3">
+              {currentStep.options.map((opt: any) => (
+                <button
+                  key={opt.id}
+                  onClick={() => setDiagnostic({ ...diagnostic, [currentStep.field]: opt.id })}
+                  className={`option-btn flex items-center gap-4 ${diagnostic[currentStep.field as keyof typeof diagnostic] === opt.id ? 'selected' : ''}`}
+                >
+                  <opt.icon size={20} className={diagnostic[currentStep.field as keyof typeof diagnostic] === opt.id ? 'text-green-700' : 'text-slate-300'} />
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <textarea
+              className="input-zen h-40 resize-none"
+              placeholder="Escreva aqui com o coração..."
+              value={diagnostic.notes}
+              onChange={(e) => setDiagnostic({ ...diagnostic, notes: e.target.value })}
+            />
+          )}
+
+          <button
+            disabled={step < 3 && !diagnostic[currentStep.field as keyof typeof diagnostic]}
+            onClick={handleNext}
+            className="mt-8 w-full py-5 rounded-2xl bg-green-900 text-white font-bold disabled:opacity-30 disabled:cursor-not-allowed hover:bg-green-800 transition-colors shadow-lg"
+          >
+            {step === 3 ? 'Iniciar Minha Jornada' : 'Continuar'}
+          </button>
+        </motion.div>
+      </AnimatePresence>
+    </div>
+  );
+}
+
+function diagnosticInsight(theme: string) {
+  const insights: any = {
+    'Cura do Corpo': '"Eu ouço com amor as mensagens do meu corpo. Meu corpo está sempre trabalhando para a saúde perfeita."',
+    'Prosperidade Infinita': '"Meu rendimento está constantemente aumentando. Eu passo de um sucesso para outro maior ainda."',
+    'Harmonia e Amor': '"O amor acontece! Eu agora me liberto do desejo de controlar as pessoas em minha vida."',
+    'Propósito de Vida': '"Eu estou no lugar certo, na hora certa, fazendo a coisa certa. Minha vida é uma alegria."'
+  };
+  return insights[theme] || '"Tudo está bem no meu mundo. De tudo isso, apenas o bem virá. Estou em segurança."';
 }
 
 export default App;

@@ -47,3 +47,67 @@ body {
 .font-serif {
   font-family: 'Playfair Display', serif;
 }
+
+/* Onboarding Specific Styles */
+.step-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.onboarding-card {
+  background: white;
+  border-radius: 32px;
+  padding: 2.5rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03);
+}
+
+.option-btn {
+  width: 100%;
+  padding: 1.25rem;
+  border-radius: 20px;
+  border: 1px solid #e2e8f0;
+  background: white;
+  text-align: left;
+  font-weight: 500;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.option-btn.selected {
+  border-color: var(--zen-sage);
+  background: var(--zen-sage-light);
+  color: var(--zen-sage);
+}
+
+.input-zen {
+  width: 100%;
+  padding: 1.25rem;
+  border-radius: 20px;
+  border: 1px solid #e2e8f0;
+  background: var(--zen-cream);
+  font-family: 'Inter', sans-serif;
+  font-size: 1rem;
+  outline: none;
+  transition: all 0.2s;
+  box-sizing: border-box;
+}
+
+.input-zen:focus {
+  border-color: var(--zen-sage);
+  box-shadow: 0 0 0 4px rgba(74, 103, 65, 0.1);
+}
+
+.progress-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 4px;
+  background: #e2e8f0;
+  transition: all 0.3s;
+}
+
+.progress-dot.active {
+  width: 24px;
+  background: var(--zen-sage);
+}
