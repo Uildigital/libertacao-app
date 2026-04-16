@@ -78,6 +78,19 @@ function App() {
     setLoading(false);
   };
 
+  const resetJourney = async () => {
+    if (!confirm("Deseja realmente reiniciar sua jornada? Os dados atuais serão arquivados.")) return;
+    setLoading(true);
+    await supabase
+      .from('healing_journeys')
+      .update({ status: 'completed' })
+      .eq('session_id', activeProfile.id)
+      .eq('status', 'active');
+    
+    setJourney(null);
+    setLoading(false);
+  };
+
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center bg-white">
       <Sparkles className="text-green-700 animate-pulse" size={48} />
@@ -122,7 +135,7 @@ function App() {
         </motion.div>
         
         {/* Profile Switcher */}
-        <div className="flex justify-center gap-2 mb-6">
+        <div className="flex justify-center flex-wrap gap-2 mb-6">
           {Object.values(PROFILES).map((profile) => (
             <button
               key={profile.id}
@@ -136,6 +149,13 @@ function App() {
               {profile.name}
             </button>
           ))}
+          <button
+            onClick={resetJourney}
+            className="px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest bg-rose-50 text-rose-400 border-none cursor-pointer hover:bg-rose-100"
+            title="Reiniciar Jornada"
+          >
+            Recomeçar
+          </button>
         </div>
 
         <h1 className="text-6xl font-serif text-slate-800 leading-tight tracking-tight px-4">
