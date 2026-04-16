@@ -9,14 +9,8 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [journey, setJourney] = useState<any>(null);
   const [logs, setLogs] = useState<any[]>([]);
-  const [showIdent, setShowIdent] = useState(false);
   const [tempId, setTempId] = useState('');
   const [tempName, setTempName] = useState('');
-
-  // CONFIGURAÇÃO DO BOT (Aqui deve ir o número do seu N8n/WhatsApp Business)
-  const BOT_NUMBER = "5581999801544"; // ATENÇÃO: Ajuste para o número do seu BOT
-  
-  const whatsappUrl = `https://wa.me/${BOT_NUMBER}?text=Olá Mentora Louise, aqui é ${userName || 'alguém precisando de luz'}. Estou pronto para minha libertação de hoje. Minha jornada atual é: ${journey?.theme || 'Geral'}.`;
 
   useEffect(() => {
     if (!userId) {
@@ -40,31 +34,38 @@ function App() {
         .from('emotions_log')
         .select('*')
         .eq('session_id', userId)
-        .order('created_at', { ascending: false })
-        .limit(4);
+        .order('created_at', { ascending: true });
       
       if (logsData) setLogs(logsData || []);
       setLoading(false);
     }
     fetchData();
+
+    // Inscrição em Tempo Real para respostas da IA
+    const channel = supabase
+      .channel('chat-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'emotions_log', filter: `session_id=eq.${userId}` },
+        () => {
+          fetchData(); // Recarrega os logs quando houver mudança no banco
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [userId]);
 
   const handleIdentify = async (id: string, name: string) => {
-    // Normaliza o número: remove tudo que não é dígito
     let cleanId = id.replace(/\D/g, '');
-    
-    // Se digitou 11 dígitos (DDD + número), assume Brasil e coloca 55
-    if (cleanId.length === 11) {
-      cleanId = '55' + cleanId;
-    }
-    
+    if (cleanId.length === 11) cleanId = '55' + cleanId;
     const formattedId = `${cleanId}@s.whatsapp.net`;
     
-    // 1. Salva no navegador
     localStorage.setItem('libertacao_user_id', formattedId);
     localStorage.setItem('libertacao_user_name', name);
     
-    // 2. Notifica o Banco de Dados IMEDIATAMENTE (Gatilho para o N8n)
     await supabase.from('emotions_log').insert({
       session_id: formattedId,
       user_message: `NOVO ACESSO: ${name} acabou de se cadastrar no app e aguarda boas-vindas.`,
@@ -98,7 +99,6 @@ function App() {
       .single();
 
     if (data) {
-      // Log do diagnóstico que a Mentora vai ler
       await supabase.from('emotions_log').insert({
         session_id: userId,
         user_message: `SOLICITAÇÃO DE AJUDA (${userName}): "Sinto que minha dor está em ${theme}. O padrão que me trava é ${diagnostic.pattern}. Minha queixa: ${diagnostic.notes}"`,
@@ -122,12 +122,20 @@ function App() {
     setLoading(false);
   };
 
+  const sendMessage = async (message: string) => {
+    if (!message.trim() || !userId) return;
+    await supabase.from('emotions_log').insert({
+      session_id: userId,
+      user_message: message,
+      emotion_tag: 'chat_interaction'
+    });
+  };
+
   const logout = () => {
     localStorage.clear();
     setUserId(null);
     setUserName(null);
     setJourney(null);
-    setShowIdent(false);
   };
 
   if (loading) return (
@@ -141,9 +149,9 @@ function App() {
 
   if (!userId) {
     return (
-      <div className="min-h-screen bg-[#fafaf8] p-8 flex flex-col justify-center items-center max-w-lg mx-auto">
+      <div className="min-h-screen bg-transparent p-8 flex flex-col justify-center items-center max-w-lg mx-auto">
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="w-full space-y-12 text-center">
-          <div className="inline-flex p-5 bg-white rounded-full shadow-sm">
+          <div className="inline-flex p-5 bg-white/80 backdrop-blur-xl rounded-full shadow-sm">
             <Heart className="text-rose-500" size={32} />
           </div>
           
@@ -154,7 +162,7 @@ function App() {
             </p>
           </div>
 
-          <div className="bg-white p-10 rounded-[40px] shadow-xl shadow-green-900/5 space-y-8 text-left border border-slate-100">
+          <div className="bg-white/90 backdrop-blur-2xl p-10 rounded-[40px] shadow-xl shadow-green-900/5 space-y-8 text-left border border-white/20">
             <div className="space-y-2">
               <label className="section-label">Como podemos te chamar?</label>
               <input 
@@ -183,24 +191,20 @@ function App() {
               Começar minha cura agora
             </button>
           </div>
-          
-          <p className="text-[10px] text-slate-300 font-bold uppercase tracking-[0.2em]">
-            Baseado na filosofia de Louise Hay
+          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em]">
+            Filosofia de Louise Hay
           </p>
         </motion.div>
       </div>
     );
   }
 
-  // Phase 3: Diagnostic Onboarding
   if (!journey) {
     return <Onboarding onComplete={startJourney} profileName={userName || 'você'} onBack={logout} />;
   }
 
-  // Phase 4: Active Dashboard
   return (
     <div className="min-h-screen p-6 max-w-lg mx-auto pb-24 relative overflow-hidden">
-      {/* Ritual Header */}
       <header className="relative z-10 flex justify-between items-end mt-12 mb-10 pt-10">
         <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
           <p className="section-label mb-2">Portal de Libertação</p>
@@ -211,7 +215,6 @@ function App() {
         </button>
       </header>
 
-      {/* The Journey Map (Complex Visualization) */}
       <motion.div 
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
@@ -224,13 +227,13 @@ function App() {
           </div>
           <div className="flex-1 ml-8 space-y-2">
             <div className="flex justify-between items-end">
-              <span className="text-[10px] font-bold text-green-800 uppercase tracking-widest">Sua Evolução</span>
-              <span className="text-[10px] font-bold text-slate-400">{( (journey?.current_day || 0) / 21 * 100).toFixed(0)}%</span>
+              <span className="text-[10px] font-bold text-green-800 uppercase tracking-widest">Evolução</span>
+              <span className="text-[10px] font-bold text-slate-400">{Math.round((journey?.current_day / 21) * 100)}%</span>
             </div>
             <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
               <motion.div 
                 initial={{ width: 0 }}
-                animate={{ width: `${( (journey?.current_day || 0) / 21 * 100)}%` }}
+                animate={{ width: `${(journey?.current_day / 21) * 100}%` }}
                 className="h-full bg-gradient-to-r from-green-800 to-green-500" 
               />
             </div>
@@ -238,11 +241,10 @@ function App() {
         </div>
         <div className="flex items-center gap-3 p-4 bg-green-50/30 rounded-2xl border border-green-100/50">
           <Sparkles className="text-green-800" size={16} />
-          <p className="text-xs font-medium text-green-900">Tema Ativo: <span className="font-bold underline decoration-green-800/30">{journey?.theme}</span></p>
+          <p className="text-xs font-medium text-green-900">Foco: <span className="font-bold underline decoration-green-800/30">{journey?.theme}</span></p>
         </div>
       </motion.div>
 
-      {/* The Insight Engine Card (Deep Assistance) */}
       <motion.section 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -255,19 +257,15 @@ function App() {
         </div>
         <p className="text-slate-600 leading-relaxed mb-6 font-medium">
           {userName}, seu coração está vibrando na frequência do perdão hoje. 
-          Note que sua dificuldade com <span className="text-green-900 font-bold">{journey?.theme.toLowerCase()}</span> é apenas um sinal de que você está pronto para soltar o passado.
+          Note que sua dificuldade com <span className="text-green-900 font-bold">{journey?.theme.toLowerCase()}</span> é um portal para soltar o passado.
         </p>
-        <div className="p-4 bg-white/60 rounded-xl italic text-xs text-slate-500 border border-white/40">
-          "Para mudar sua vida, você deve mudar seus pensamentos hoje." — Louise
-        </div>
       </motion.section>
 
-      {/* Affirmation Totem */}
       <motion.div 
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ delay: 0.2 }}
-        className="relative mb-12 group"
+        className="relative mb-12"
       >
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent z-10 rounded-[48px]" />
         <img 
@@ -277,63 +275,74 @@ function App() {
         />
         <div className="absolute inset-0 z-20 p-10 flex flex-col justify-end">
           <p className="text-[10px] font-bold uppercase tracking-widest text-white/60 mb-4 flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" /> Mantra de Poder do Dia {journey?.current_day}
+            <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" /> Mantra de Poder de Hoje
           </p>
-          <p className="power-affirmation mb-8">
+          <p className="power-affirmation text-2xl">
             "{journey?.affirmation}"
           </p>
-          <button 
-            onClick={() => window.open(whatsappUrl, '_blank')}
-            className="w-full py-5 rounded-2xl bg-white text-slate-900 font-bold hover:scale-[1.02] transition-all shadow-2xl active:scale-95 flex items-center justify-center gap-3 border-none cursor-pointer group-hover:bg-green-50"
-          >
-            Praticar no WhatsApp <ArrowRight size={18} />
-          </button>
         </div>
       </motion.div>
 
-      {/* Journaling Timeline (The Healing Moments) */}
-      <section className="relative z-10 px-2 pb-12">
+      <section className="relative z-10 px-2 pb-40">
         <div className="flex justify-between items-center mb-8">
-          <h3 className="section-label">Diário de Libertação</h3>
+          <h3 className="section-label">Diálogo de Cura</h3>
           <button onClick={resetJourney} className="text-[9px] font-bold uppercase text-slate-400 hover:text-rose-600 border-none bg-none cursor-pointer">
-            Arquivar Jornada
+            Arquivar
           </button>
         </div>
 
-        <div className="space-y-12 before:absolute before:left-10 before:top-24 before:bottom-20 before:w-px before:bg-slate-200/50">
-          {logs.length > 0 ? logs.map((log, i) => (
+        <div className="space-y-8">
+          {logs.filter(l => l.emotion_tag !== 'diagnostic' && l.emotion_tag !== 'new_registration').map((log, i) => (
             <motion.div 
               key={i}
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.6 + i * 0.1 }}
-              className="relative pl-14"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className={`flex flex-col ${log.ai_response ? 'items-start' : 'items-end'}`}
             >
-              <div className="absolute left-8 top-0 w-4 h-4 rounded-full bg-white border-4 border-green-800 shadow-sm z-10" />
-              <div className="space-y-4">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                  {new Date(log.created_at).toLocaleDateString()} às {new Date(log.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </p>
-                <div className="chat-bubble-user text-sm text-slate-600 italic">
-                  "{log.user_message}"
-                </div>
-                {log.ai_response && (
-                  <motion.div 
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="chat-bubble-mentor text-sm leading-relaxed"
-                  >
-                    <p className="font-bold text-[10px] uppercase mb-2">Mentora Louise</p>
-                    {log.ai_response}
-                  </motion.div>
-                )}
+              <div className={`max-w-[85%] ${log.ai_response ? 'chat-bubble-mentor' : 'chat-bubble-user'}`}>
+                <p className="text-sm leading-relaxed">{log.user_message}</p>
               </div>
+              {log.ai_response && (
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="chat-bubble-mentor mt-4 border border-green-200"
+                >
+                  <p className="font-bold text-[9px] uppercase mb-2">Mentora Louise</p>
+                  <p className="text-sm">{log.ai_response}</p>
+                </motion.div>
+              )}
             </motion.div>
-          )) : (
-            <div className="text-center py-20 opacity-20 italic font-serif text-lg">Sua história começa aqui...</div>
-          )}
+          ))}
+          {logs.length === 0 && <div className="text-center py-20 opacity-20 italic">Sua história começa aqui...</div>}
         </div>
       </section>
+
+      <div className="fixed bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-white via-white/95 to-transparent z-30 backdrop-blur-sm">
+        <div className="max-w-lg mx-auto relative px-2">
+          <input 
+            type="text" 
+            placeholder="Como você se sente agora?"
+            className="input-zen !rounded-full !py-6 !pl-8 !pr-20 shadow-2xl border-none ring-1 ring-slate-100"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                sendMessage((e.target as HTMLInputElement).value);
+                (e.target as HTMLInputElement).value = '';
+              }
+            }}
+          />
+          <button 
+            className="absolute right-5 top-2 bottom-2 aspect-square bg-green-800 text-white rounded-full flex items-center justify-center hover:scale-110 transition-transform active:scale-90 border-none cursor-pointer"
+            onClick={(e) => {
+              const input = e.currentTarget.parentElement?.querySelector('input') as HTMLInputElement;
+              sendMessage(input.value);
+              input.value = '';
+            }}
+          >
+            <ArrowRight size={20} />
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -344,7 +353,7 @@ function Onboarding({ onComplete, profileName, onBack }: { onComplete: (data: an
 
   const steps = [
     {
-      title: "Vamos escolher seu caminho",
+      title: "Caminhos",
       subtitle: "Qual área da sua vida apresenta o maior desafio agora?",
       options: [
         { id: 'health', label: 'Saúde Física', icon: Heart },
@@ -355,8 +364,8 @@ function Onboarding({ onComplete, profileName, onBack }: { onComplete: (data: an
       field: 'area'
     },
     {
-      title: "A Raiz do Problema",
-      subtitle: "Baseado na teoria de Louise Hay, qual desses padrões você sente que te trava?",
+      title: "A Raiz",
+      subtitle: "Qual desses padrões você sente que te trava?",
       options: [
         { id: 'criticismo', label: 'Criticismo', icon: Wind },
         { id: 'culpa', label: 'Culpa', icon: Heart },
@@ -366,7 +375,7 @@ function Onboarding({ onComplete, profileName, onBack }: { onComplete: (data: an
       field: 'pattern'
     },
     {
-      title: "Seu Desabafo",
+      title: "Desabafo",
       subtitle: "Em uma frase, o que você quer soltar hoje?",
       field: 'notes'
     }
@@ -379,14 +388,14 @@ function Onboarding({ onComplete, profileName, onBack }: { onComplete: (data: an
   };
 
   return (
-    <div className="min-h-screen bg-white/80 backdrop-blur-3xl p-8 flex flex-col justify-center max-w-lg mx-auto overflow-hidden">
+    <div className="min-h-screen bg-transparent p-8 flex flex-col justify-center max-w-lg mx-auto overflow-hidden">
       <div className="mb-12 flex justify-between items-center">
         <div className="flex gap-2">
           {[1, 2, 3].map(i => (
             <div key={i} className={`progress-dot ${step >= i ? 'active' : ''}`} />
           ))}
         </div>
-        <button onClick={onBack} className="text-[10px] font-bold uppercase text-slate-300 hover:text-slate-500 border-none bg-none cursor-pointer">Voltar</button>
+        <button onClick={onBack} className="text-[10px] font-bold uppercase text-slate-300 hover:text-slate-500 border-none bg-none cursor-pointer">Sair</button>
       </div>
 
       <AnimatePresence mode="wait">
@@ -395,7 +404,7 @@ function Onboarding({ onComplete, profileName, onBack }: { onComplete: (data: an
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: -20 }}
-          className="step-container"
+          className="step-container glass-panel p-10"
         >
           <h2 className="text-4xl font-serif text-slate-900 mb-2">{currentStep.title}</h2>
           <p className="text-slate-500 mb-8 leading-relaxed italic">"{currentStep.subtitle}"</p>
@@ -433,16 +442,6 @@ function Onboarding({ onComplete, profileName, onBack }: { onComplete: (data: an
       </AnimatePresence>
     </div>
   );
-}
-
-function diagnosticInsight(theme: string) {
-  const insights: any = {
-    'Cura do Corpo': '"Eu aceito uma saúde perfeita agora. Eu libero a necessidade de ficar doente."',
-    'Prosperidade Infinita': '"A lei da abundância supre todas as minhas necessidades. Eu sou um imã para o bem."',
-    'Harmonia e Amor': '"Todos os meus relacionamentos são harmoniosos. Eu me amo e me aceito."',
-    'Propósito de Vida': '"Eu sou divinamente guiado em todos os momentos. Minha vida flui com facilidade."'
-  };
-  return insights[theme] || '"Cada pensamento meu está criando o meu futuro. Eu escolho pensamentos de alegria."';
 }
 
 export default App;
