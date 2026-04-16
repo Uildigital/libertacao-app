@@ -49,7 +49,7 @@ function App() {
     fetchData();
   }, [userId]);
 
-  const handleIdentify = (id: string, name: string) => {
+  const handleIdentify = async (id: string, name: string) => {
     // Normaliza o número: remove tudo que não é dígito
     let cleanId = id.replace(/\D/g, '');
     
@@ -57,13 +57,20 @@ function App() {
     if (cleanId.length === 11) {
       cleanId = '55' + cleanId;
     }
-    // Se digitou 9 dígitos (sem DDD), pode ser bugado, mas vamos tentar manter
-    // O ideal é que o usuário digite DDD + Número.
     
     const formattedId = `${cleanId}@s.whatsapp.net`;
     
+    // 1. Salva no navegador
     localStorage.setItem('libertacao_user_id', formattedId);
     localStorage.setItem('libertacao_user_name', name);
+    
+    // 2. Notifica o Banco de Dados IMEDIATAMENTE (Gatilho para o N8n)
+    await supabase.from('emotions_log').insert({
+      session_id: formattedId,
+      user_message: `NOVO ACESSO: ${name} acabou de se cadastrar no app e aguarda boas-vindas.`,
+      emotion_tag: 'new_registration'
+    });
+
     setUserId(formattedId);
     setUserName(name);
   };
