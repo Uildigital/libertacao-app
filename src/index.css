@@ -1,21 +1,39 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Inter:wght@300;400;600&display=swap');
+
 :root {
-  --prime-bg: #f8f9f5;
-  --zen-green: #6b8e23;
-  --soft-cream: #fefae0;
-  --earth-terracotta: #bc6c25;
-  --text-dark: #283618;
-  --shadow: 0 10px 40px rgba(0,0,0,0.05);
+  --zen-sage: #6b8e23;
+  --zen-cream: #f8f9f5;
+  --zen-gold: #c5a059;
 }
 
 body {
-  background: radial-gradient(circle at top right, #fdfbfb, #ebedee);
-  min-height: 100vh;
-  font-family: 'Inter', sans-serif;
+  margin: 0;
+  padding: 0;
+  color: #2c3e50;
+  background: linear-gradient(-45deg, #f8f9f5, #e9edc9, #fefae0, #faedcd);
+  background-size: 400% 400%;
+  animation: bgGradient 15s ease infinite;
 }
 
-.glass-card {
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  box-shadow: var(--shadow);
+@keyframes bgGradient {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.glass-panel {
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(15px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.04);
+  border-radius: 40px;
+}
+
+.pulsing-icon {
+  animation: pulse 4s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); opacity: 0.8; }
+  50% { transform: scale(1.1); opacity: 1; }
 }
