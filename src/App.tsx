@@ -98,6 +98,12 @@ function App() {
       .single();
 
     if (data) {
+      // GROWTH: Evento direcional para o Pixel/Ads
+      (window as any).logHealingEvent('StartJourney', { 
+        theme: theme, 
+        area: diagnostic.area 
+      });
+
       await supabase.from('emotions_log').insert({
         session_id: userId,
         user_message: `FOCO DE CURA: ${theme}. Padrão Detectado: ${pattern}. Queixa: ${diagnostic.notes}`,

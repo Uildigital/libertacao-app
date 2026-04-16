@@ -3,7 +3,13 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Libertação - Louise Hay</title>
+    <title>Libertação - Caderno de Cura</title>
+    <script>
+      window.logHealingEvent = (eventName, eventParams) => {
+        console.log(`[HealingEvent] ${eventName}`, eventParams);
+        if (window.fbq) window.fbq('trackCustom', eventName, eventParams);
+      };
+    </script>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
