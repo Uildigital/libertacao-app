@@ -139,7 +139,7 @@ body {
 }
 
 .section-label {
-  font-[10px];
+  font-size: 10px;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 2.5px;
